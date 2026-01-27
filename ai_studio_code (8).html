@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteganoSecure | Functional Multimedia Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .hidden-section { display: none !important; }
+        .bg-cyber { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+        /* Ensure preview is visible */
+        #preview-render img, #preview-render video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+        }
+        .active-media { background: #2563eb !important; color: white !important; }
+    </style>
+</head>
+<body class="bg-cyber min-h-screen">
+
+    <!-- 1. SECURE LOGIN -->
+    <section id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 px-6">
+        <div class="bg-white w-full max-w-md p-10 rounded-[2rem] shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><i data-lucide="shield-check"></i></div>
+                <h2 class="text-2xl font-bold">Project Auth</h2>
+                <p id="ip-display" class="text-[10px] text-blue-500 font-bold mt-2 uppercase tracking-widest leading-loose">Logging IP: Fetching...</p>
+            </div>
+            <form onsubmit="handleAuth(event)" class="space-y-4">
+                <input type="text" id="username" placeholder="Student ID / Name" required class="w-full px-5 py-4 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="password" placeholder="Access Key" required class="w-full px-5 py-4 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none">
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition">Login to System</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- 2. MAIN DASHBOARD -->
+    <main id="app-dashboard" class="hidden-section">
+        <nav class="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+            <div class="flex items-center gap-2 font-black text-xl"><span class="text-blue-600 uppercase">Stegano</span>HUB</div>
+            <div id="user-tag" class="text-[10px] font-black bg-slate-100 px-4 py-2 rounded-full uppercase text-slate-500"></div>
+        </nav>
+
+        <div class="max-w-6xl mx-auto px-6 py-12 grid lg:grid-cols-12 gap-8">
+            
+            <!-- LEFT: PROCESSING TOOL -->
+            <div class="lg:col-span-7 bg-white rounded-[2rem] shadow-md border border-slate-200 overflow-hidden">
+                <div class="flex bg-slate-50 border-b">
+                    <button onclick="setWF('encode')" id="tab-encode" class="flex-1 py-5 font-bold text-blue-600 border-b-4 border-blue-600 bg-white">ENCODE</button>
+                    <button onclick="setWF('decode')" id="tab-decode" class="flex-1 py-5 font-bold text-slate-400">DECODE</button>
+                </div>
+
+                <div class="p-8 space-y-8">
+                    <!-- Media Switcher -->
+                    <div class="flex gap-3">
+                        <button onclick="setMedia('image')" id="m-image" class="active-media px-6 py-2 rounded-full text-xs font-bold border">Images</button>
+                        <button onclick="setMedia('audio')" id="m-audio" class="bg-slate-50 px-6 py-2 rounded-full text-xs font-bold border text-slate-400">Audio</button>
+                        <button onclick="setMedia('video')" id="m-video" class="bg-slate-50 px-6 py-2 rounded-full text-xs font-bold border text-slate-400">Video</button>
+                    </div>
+
+                    <!-- UPLOAD AREA -->
+                    <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="relative border-4 border-dashed border-slate-100 rounded-[2rem] p-10 text-center hover:bg-blue-50 hover:border-blue-200 cursor-pointer transition-all">
+                        <input type="file" id="file-input" class="hidden" onchange="handleFile(event)">
+                        
+                        <!-- Visible when NO file is selected -->
+                        <div id="upload-prompt">
+                            <i data-lucide="image-plus" class="w-12 h-12 text-blue-400 mx-auto mb-4"></i>
+                            <p class="font-bold text-slate-600">Click to upload carrier <span id="media-label">Image</span></p>
+                            <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">Local File Explorer</p>
+                        </div>
+
+                        <!-- Visible ONLY when file is selected -->
+                        <div id="upload-preview" class="hidden-section">
+                            <div id="preview-render" class="flex justify-center mb-4"></div>
+                            <div class="flex items-center justify-center gap-2 text-green-600 font-bold text-sm">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i> <span id="file-name">file_name.png</span>
+                            </div>
+                            <button onclick="resetFile(event)" class="mt-4 text-[10px] font-bold text-red-500 uppercase tracking-widest hover:underline">Remove File</button>
+                        </div>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div id="msg-container">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Secret Message</label>
+                        <textarea id="secret-text" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 focus:border-blue-500 outline-none transition" rows="3" placeholder="Type message here..."></textarea>
+                    </div>
+
+                    <button onclick="runProcess()" class="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl shadow-xl hover:bg-blue-600 transition flex items-center justify-center gap-3">
+                        <i data-lucide="zap" class="w-5 h-5"></i> EXECUTE TASK
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT: RESULTS -->
+            <div id="results-panel" class="lg:col-span-5 space-y-6 opacity-30 pointer-events-none">
+                <div class="bg-white p-8 rounded-[2rem] border shadow-sm min-h-full flex flex-col">
+                    <h3 class="font-bold text-slate-900 mb-8 flex items-center gap-2"><i data-lucide="cpu" class="text-blue-600"></i> Process Logs</h3>
+                    
+                    <div id="loader" class="hidden-section flex-1 flex flex-col items-center justify-center">
+                        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-[10px] font-bold text-slate-400 mt-4 uppercase tracking-widest">Applying Algorithm...</p>
+                    </div>
+
+                    <div id="final-result" class="flex-1 flex flex-col">
+                        <div id="res-media-box" class="mb-6 rounded-2xl overflow-hidden border p-2 bg-slate-50"></div>
+                        <div id="res-text-box" class="hidden-section bg-slate-900 text-green-400 p-6 rounded-2xl font-mono text-sm mb-6 shadow-inner"></div>
+                        
+                        <a id="dl-button" href="#" download class="w-full bg-green-600 text-white font-bold py-4 rounded-xl text-center flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> SAVE TO DEVICE
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        
+        let type = 'image';
+        let workflow = 'encode';
+        let simulationDB = ""; // Mock database for decryption
+
+        // 1. IP LOGGING & AUTH
+        fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => {
+            document.getElementById('ip-display').innerText = "Logged IP: " + d.ip;
+            window.userIP = d.ip;
+        });
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const name = document.getElementById('username').value;
+            document.getElementById('login-screen').classList.add('hidden-section');
+            document.getElementById('app-dashboard').classList.remove('hidden-section');
+            document.getElementById('user-tag').innerText = `USER: ${name} | IP: ${window.userIP}`;
+            alert(`Authentication Successful. Logged IP: ${window.userIP}`);
+        }
+
+        // 2. WORKFLOW & MEDIA SWITCHER
+        function setWF(wf) {
+            workflow = wf;
+            document.getElementById('tab-encode').className = wf==='encode' ? "flex-1 py-5 font-bold text-blue-600 border-b-4 border-blue-600 bg-white" : "flex-1 py-5 font-bold text-slate-400 bg-slate-50";
+            document.getElementById('tab-decode').className = wf==='decode' ? "flex-1 py-5 font-bold text-blue-600 border-b-4 border-blue-600 bg-white" : "flex-1 py-5 font-bold text-slate-400 bg-slate-50";
+            document.getElementById('msg-container').classList.toggle('hidden-section', wf==='decode');
+        }
+
+        function setMedia(m) {
+            type = m;
+            document.getElementById('media-label').innerText = m.toUpperCase();
+            document.querySelectorAll('[id^="m-"]').forEach(btn => btn.className = "bg-slate-50 px-6 py-2 rounded-full text-xs font-bold border text-slate-400");
+            document.getElementById('m-'+m).className = "active-media px-6 py-2 rounded-full text-xs font-bold border";
+            resetFile();
+        }
+
+        // 3. FILE HANDLING & PREVIEW
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const preview = document.getElementById('preview-render');
+            document.getElementById('file-name').innerText = file.name;
+
+            reader.onload = function(event) {
+                preview.innerHTML = "";
+                if(type === 'image') preview.innerHTML = `<img src="${event.target.result}">`;
+                else if(type === 'audio') preview.innerHTML = `<div class="p-10 bg-blue-50 rounded-full"><i data-lucide="music" class="w-10 h-10 text-blue-600"></i></div>`;
+                else if(type === 'video') preview.innerHTML = `<video src="${event.target.result}" autoplay muted loop></video>`;
+                
+                document.getElementById('upload-prompt').classList.add('hidden-section');
+                document.getElementById('upload-preview').classList.remove('hidden-section');
+                lucide.createIcons();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetFile(e) {
+            if(e) e.stopPropagation();
+            document.getElementById('file-input').value = "";
+            document.getElementById('upload-prompt').classList.remove('hidden-section');
+            document.getElementById('upload-preview').classList.add('hidden-section');
+            document.getElementById('results-panel').classList.add('opacity-30', 'pointer-events-none');
+        }
+
+        // 4. EXECUTION
+        function runProcess() {
+            if(!document.getElementById('file-input').files[0]) return alert("Please select a file first.");
+            
+            const panel = document.getElementById('results-panel');
+            const loader = document.getElementById('loader');
+            const result = document.getElementById('final-result');
+            const resMedia = document.getElementById('res-media-box');
+            const resText = document.getElementById('res-text-box');
+            const dlBtn = document.getElementById('dl-button');
+
+            panel.classList.remove('opacity-30', 'pointer-events-none');
+            loader.classList.remove('hidden-section');
+            result.classList.add('hidden-section');
+
+            setTimeout(() => {
+                loader.classList.add('hidden-section');
+                result.classList.remove('hidden-section');
+                const fileUrl = URL.createObjectURL(document.getElementById('file-input').files[0]);
+
+                if(workflow === 'encode') {
+                    simulationDB = document.getElementById('secret-text').value; // Simulate Saving Data
+                    resMedia.innerHTML = (type === 'image') ? `<img src="${fileUrl}">` : `<p class="text-xs font-bold text-slate-500 uppercase p-4">Processed Stego-${type} Ready</p>`;
+                    resText.classList.add('hidden-section');
+                    dlBtn.href = fileUrl;
+                    dlBtn.classList.remove('hidden-section');
+                    alert("Encoding Successful! Secret message embedded.");
+                } else {
+                    resMedia.innerHTML = `<div class="p-6 text-center"><i data-lucide="unlock" class="text-green-500 mx-auto w-10 h-10"></i></div>`;
+                    resText.innerText = "Extracted Message: " + (simulationDB || "NO DATA FOUND IN CARRIER");
+                    resText.classList.remove('hidden-section');
+                    dlBtn.classList.add('hidden-section');
+                    alert("Decryption Complete!");
+                }
+                lucide.createIcons();
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
